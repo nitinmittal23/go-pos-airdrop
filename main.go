@@ -3,12 +3,15 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"strconv"
 
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/nitinmittal23/go-pos-airdrop/database"
+	middleware "github.com/nitinmittal23/go-pos-airdrop/middlewares"
 	"github.com/nitinmittal23/go-pos-airdrop/services"
 	"github.com/robfig/cron/v3"
 )
@@ -106,4 +109,24 @@ func main() {
 
 	crn.Start()
 	defer crn.Stop()
+
+	transactionService, _ := services.NewTransactions(
+		databaseClient,
+		"airdrop_transactions",
+	)
+
+	router := gin.Default()
+
+	router.GET("/health-check", healthCheck)
+
+	router.GET("/transactions", middleware.CheckGetTransactionQuery(), transactionService.GetTransactions)
+
+	router.Run(":3000")
+}
+
+func healthCheck(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "All services are operational",
+	})
 }
